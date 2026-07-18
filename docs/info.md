@@ -8,20 +8,26 @@ all 40 official `rv32ui` riscv-tests, here re-verified pin-level through
 the ASIC memory subsystem.
 
 The tile has no RAM, so the chip executes **in place from external QSPI
-Pmod memory** (SPI mode): code and constants stream from W25Q128 flash,
-data and stack live in APS6404 PSRAM. A fetch FSM and a 2:1 arbiter
-funnel instruction and data traffic into one SPI memory controller
-(commands 03h/02h, SCK = clk/2); the pipeline freezes on data accesses
-and takes bubbles on fetches, so ~130 clocks per instruction at the
-memory wall — a deliberately honest v1 (quad mode and burst fetch are
-the planned upgrades).
+Pmod memory**: code and constants stream from W25Q128 flash, data and
+stack live in APS6404 PSRAM. A fetch FSM and a 2:1 arbiter funnel
+instruction and data traffic into one memory controller (SCK = clk/2);
+each fetch bursts an instruction *pair*, and the pipeline keeps draining
+on bubbles while fetches are in flight.
+
+The chip **always boots in plain 1-bit SPI** (03h/02h — the mode that
+cannot fail), then software may switch to **QUAD** per device via the
+QSPI_CFG register: flash reads become 6Bh fast-read-quad-output, PSRAM
+reads/writes become EBh/38h. Measured across the full riscv-tests suite,
+quad + burst run ~2.2x faster than plain serial XIP (~60 vs ~132 clocks
+per instruction). Flash quad requires the QE bit (factory-set on the
+QSPI Pmod); if it ever isn't, simply leave QSPI_CFG bit 0 clear.
 
 Memory map:
 
 | Range | What |
 |---|---|
 | 0x0000_0000 + | flash: code + rodata, execute in place |
-| 0x0001_0000 | MMIO: +0 LED (w), +4 UART tx/busy (w/r), +8 GPIO in (r) |
+| 0x0001_0000 | MMIO: +0 LED (w), +4 UART tx/busy (w/r), +8 GPIO in (r), +C QSPI_CFG (r/w: bit0 flash quad, bit1 PSRAM quad) |
 | 0x0100_0000 + | PSRAM: .data, .bss, stack |
 
 Software builds with plain GCC (`-march=rv32e -mabi=ilp32e`); the flash

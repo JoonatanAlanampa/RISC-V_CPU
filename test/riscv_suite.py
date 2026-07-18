@@ -7,7 +7,9 @@
 # a0 == 1 on pass, (testnum << 1) | 1 on failure.
 #
 # Run:  TEST_MODULE=riscv_suite python run.py
-# Optionally RISCV_GLOB=s* to run a subset.
+# Optionally RISCV_GLOB=s* to run a subset, QUAD=1 to run the entire suite
+# with quad-mode memory (QSPI_CFG deposited to 3 after each reset — the
+# register holds a deposit because the RTL only assigns it on MMIO writes).
 
 import fnmatch
 import os
@@ -58,6 +60,9 @@ async def test_riscv_suite(dut):
         dut.rst_n.value = 0
         await ClockCycles(dut.clk, 10)
         dut.rst_n.value = 1
+        if os.environ.get("QUAD") == "1":
+            await ClockCycles(dut.clk, 2)
+            core.qspi_cfg.value = 3
 
         verdict = "TIMEOUT"
         try:

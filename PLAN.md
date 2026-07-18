@@ -63,9 +63,20 @@ UART) is portable SystemVerilog.
        util; 4x2 @ 75% with 32 regs = 390k+ routing violations (regfile
        muxing saturates lower metals); RV32E halved the regfile -> routes
        clean at 8 tiles. 6x2 @ 55% with 32 regs also worked (fallback).
-6. [ ] Optional once working: shrink `cache.sv` to a flop-based line buffer
-       (e.g. 2x16B) to hide QSPI latency; measure CPI in sim first.
-7. [ ] `docs/info.md` datasheet + MicroPython bring-up script.
+6. [x] Performance, superseding the line-buffer idea:
+       - Burst-2 fetch (instruction pair per transaction): +22%.
+       - **Quad-SPI v2** (2026-07-18): QSPI_CFG MMIO at 0x1000C, resets to
+         0 = serial boot (cannot fail), software opts into quad. Flash 6Bh
+         quad-output read; PSRAM EBh/38h quad read/write. Full riscv suite
+         passes in BOTH modes; quad+burst = 2.2x vs v1 serial. hello.c
+         enables quad after boot. Pmod pull-up assumption on SD2/SD3
+         documented in qspi_ctrl.sv.
+7. [x] `docs/info.md` datasheet + `bringup/bringup.py` MicroPython script
+       (flash program/verify via bit-banged SPI + run + UART listen;
+       marked VERIFY-ON-HARDWARE for SDK pin names).
+8. [ ] Shrink experiments (in progress): can the design fit 3x2 (6 tiles)?
+       Levers: latch-based regfile, single-cycle core, iterative shifter.
+9. [ ] Submit on app.tinytapeout.com before ~2026-09-07.
 
 ## Performance expectation (honest)
 

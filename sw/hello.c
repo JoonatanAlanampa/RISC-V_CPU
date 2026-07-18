@@ -8,6 +8,7 @@
 
 #define UART_REG (*(volatile unsigned *)0x10004)
 #define LED_REG  (*(volatile unsigned char *)0x10000)
+#define QSPI_CFG (*(volatile unsigned *)0x1000C)
 
 static void putc1(char c)
 {
@@ -42,6 +43,7 @@ static int fib(int n)
 
 int main(void)
 {
+    QSPI_CFG = 3;   /* boot was serial (safe); go QUAD for the show */
     puts1("Hello from my own CPU!\n");
     unsigned f = (unsigned)fib(10);
     puts1("fib(10)=");

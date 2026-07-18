@@ -45,13 +45,16 @@ module tt_um_joonatanalanampa_rv32 (
   wire [31:0] m_wdata, m_rdata, m_rdata2;
   wire [3:0]  m_be;
 
-  wire sck, mosi, miso, cs_flash_n, cs_ram_n;
+  wire sck, cs_flash_n, cs_ram_n;
+  wire [3:0] sd_out, sd_oe, sd_in;
+  wire [1:0] qspi_cfg;
 
   // NREGS=16 (RV32E register set): the 32-entry regfile was the routing
   // killer — see PLAN.md hardening history. rv32ui suite verified clean.
   rv32_core #(.UART_DIV(217), .NREGS(16)) core (
       .clk(clk), .rst(rst),
       .halted(halted), .led(led), .uart_txd(uart_txd), .gpio_in(ui_in),
+      .qspi_cfg(qspi_cfg),
       .if_req(if_req), .if_addr(if_addr), .if_ack(if_ack), .if_rdata(m_rdata),
       .if_rdata2(m_rdata2),
       .d_req(d_req), .d_we(d_we), .d_addr(d_addr), .d_wdata(d_wdata),
@@ -68,21 +71,24 @@ module tt_um_joonatanalanampa_rv32 (
   );
 
   qspi_ctrl qspi (
-      .clk(clk), .rst(rst),
+      .clk(clk), .rst(rst), .cfg(qspi_cfg),
       .req(m_req), .we(m_we), .burst(m_burst), .addr(m_addr),
       .wdata(m_wdata), .be(m_be),
       .ack(m_ack), .rdata(m_rdata), .rdata2(m_rdata2),
-      .sck(sck), .mosi(mosi), .miso(miso),
+      .sck(sck), .sd_out(sd_out), .sd_oe(sd_oe), .sd_in(sd_in),
       .cs_flash_n(cs_flash_n), .cs_ram_n(cs_ram_n)
   );
 
-  assign miso = uio_in[2];
+  // QSPI Pmod: uio[1,2,4,5] = SD0..SD3, direction owned by the controller
+  assign sd_in = {uio_in[5], uio_in[4], uio_in[2], uio_in[1]};
 
-  assign uio_out = {1'b1, cs_ram_n, 2'b00, sck, 1'b0, mosi, cs_flash_n};
-  assign uio_oe  = 8'b1100_1011;
+  assign uio_out = {1'b1, cs_ram_n, sd_out[3], sd_out[2], sck,
+                    sd_out[1], sd_out[0], cs_flash_n};
+  assign uio_oe  = {1'b1, 1'b1, sd_oe[3], sd_oe[2], 1'b1,
+                    sd_oe[1], sd_oe[0], 1'b1};
 
   assign uo_out = {led[5:0], halted, uart_txd};
 
-  wire _unused = &{ena, uio_in[7:3], uio_in[1:0], led[7:6], 1'b0};
+  wire _unused = &{ena, uio_in[7:6], uio_in[3], uio_in[0], led[7:6], 1'b0};
 
 endmodule

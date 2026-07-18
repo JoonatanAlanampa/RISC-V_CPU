@@ -31,6 +31,7 @@ module rv32_core #(
     output logic [7:0]  led,
     output logic        uart_txd,
     input  logic [7:0]  gpio_in,
+    output logic [1:0]  qspi_cfg,   // MMIO 0x1000C; resets 0 = 1-bit SPI
 
     // instruction fetch port (req held until 1-cycle ack); each fetch
     // returns an instruction PAIR: if_rdata = @addr, if_rdata2 = @addr+4
@@ -257,13 +258,20 @@ module rv32_core #(
     assign d_wdata = st_data;
     assign d_be    = be_m;
 
-    // I/O sub-decode: +0 LED, +4 UART, +8 GPIO in
+    // I/O sub-decode: +0 LED, +4 UART, +8 GPIO in, +C QSPI_CFG
     wire io_gpio_m = addr_m[3];
     wire io_uart_m = addr_m[2];
     always_ff @(posedge clk)
         if (rst)                                              led <= 8'd0;
         else if (mem_write_m && valid_m && io_m && !io_gpio_m
                  && !io_uart_m && !halted)                    led <= st_data[7:0];
+
+    // QSPI_CFG: bit0 = flash quad read, bit1 = PSRAM quad rd/wr.
+    // Resets to 0 (plain SPI) so the chip always boots; software opts in.
+    always_ff @(posedge clk)
+        if (rst)                                              qspi_cfg <= 2'b00;
+        else if (mem_write_m && valid_m && io_m && io_gpio_m
+                 && io_uart_m && !halted)                     qspi_cfg <= st_data[1:0];
 
     logic uart_busy;
     uart_tx #(.DIV(UART_DIV)) u0
@@ -296,7 +304,8 @@ module rv32_core #(
             rd_w        <= rd_m;
             halt_w      <= halt_m;
             wb_w        <= is_load_m
-                         ? (io_m ? (io_gpio_m ? {24'd0, gpio_in}
+                         ? (io_m ? (io_gpio_m ? (io_uart_m ? {30'd0, qspi_cfg}
+                                                           : {24'd0, gpio_in})
                                               : {31'd0, uart_busy})
                                  : ld_ext)
                          : value_m;
