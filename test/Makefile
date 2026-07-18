@@ -6,7 +6,10 @@ SIM ?= icarus
 FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = project.v
+PROJECT_SOURCES = project.sv rv32_core.sv qspi_ctrl.sv control.sv immgen.sv alu.sv branch.sv regfile.sv uart_tx.sv
+
+# SystemVerilog support for Icarus:
+COMPILE_ARGS += -g2012
 
 ifneq ($(GATES),yes)
 

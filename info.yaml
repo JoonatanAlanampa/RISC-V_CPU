@@ -1,14 +1,14 @@
 # Tiny Tapeout project information
 project:
-  title:        "TinyRV32 (WIP)"      # Project title
+  title:        "TinyRV32"      # Project title
   author:       "Joonatan Alanampa"      # Your name
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "RV32I CPU with QSPI XIP memory and UART (work in progress)"      # One line description of what your project does
+  description:  "RV32I 5-stage pipelined CPU, XIP from QSPI Pmod flash/PSRAM, UART"      # One line description of what your project does
   language:     "SystemVerilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     0       # Clock frequency in Hz (or 0 if not applicable)
+  clock_hz:     25000000  # Clock frequency in Hz (or 0 if not applicable)
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
-  tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
+  tiles: "2x2"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
   top_module:  "tt_um_joonatanalanampa_rv32"
@@ -17,40 +17,48 @@ project:
   # Source files must be in ./src and you must list each source file separately, one per line.
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
-    - "project.v"
+    - "project.sv"
+    - "rv32_core.sv"
+    - "qspi_ctrl.sv"
+    - "control.sv"
+    - "immgen.sv"
+    - "alu.sv"
+    - "branch.sv"
+    - "regfile.sv"
+    - "uart_tx.sv"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: ""
-  ui[1]: ""
-  ui[2]: ""
-  ui[3]: ""
-  ui[4]: ""
-  ui[5]: ""
-  ui[6]: ""
-  ui[7]: ""
+  ui[0]: "GPIO_IN0"
+  ui[1]: "GPIO_IN1"
+  ui[2]: "GPIO_IN2"
+  ui[3]: "GPIO_IN3"
+  ui[4]: "GPIO_IN4"
+  ui[5]: "GPIO_IN5"
+  ui[6]: "GPIO_IN6"
+  ui[7]: "GPIO_IN7"
 
   # Outputs
-  uo[0]: ""
-  uo[1]: ""
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
-  uo[5]: ""
-  uo[6]: ""
-  uo[7]: ""
+  uo[0]: "UART_TX"
+  uo[1]: "HALTED"
+  uo[2]: "LED0"
+  uo[3]: "LED1"
+  uo[4]: "LED2"
+  uo[5]: "LED3"
+  uo[6]: "LED4"
+  uo[7]: "LED5"
 
   # Bidirectional pins
-  uio[0]: ""
-  uio[1]: ""
-  uio[2]: ""
-  uio[3]: ""
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  uio[0]: "CS0 flash"
+  uio[1]: "SD0/MOSI"
+  uio[2]: "SD1/MISO"
+  uio[3]: "SCK"
+  uio[4]: "SD2"
+  uio[5]: "SD3"
+  uio[6]: "CS1 PSRAM"
+  uio[7]: "CS2"
 
 # Do not change!
 yaml_version: 6

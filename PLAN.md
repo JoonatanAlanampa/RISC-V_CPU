@@ -42,14 +42,18 @@ UART) is portable SystemVerilog.
 
 ## Port tasks (in order)
 
-1. [ ] `src/qspi_ctrl.sv` — req/ack QSPI master: flash fast-read for fetch,
-       PSRAM read/write for data. Start SPI-mode (1-bit), upgrade to quad.
-2. [ ] `src/arbiter.sv` — 2:1 (fetch/data) onto the QSPI controller;
-       data port has priority, fetch is the common case.
-3. [ ] `core/cpu_pipe.sv` ASIC build: replace internal imem/dmem with
-       external ports (both through the handshake); drop video/audio/pad.
-4. [ ] cocotb testbench with behavioral QSPI flash+PSRAM models; re-run
-       milestone A hex, then the full riscv-tests suite through it.
+1. [x] `src/qspi_ctrl.sv` — req/ack QSPI master (SPI 1-bit mode, 03h/02h,
+       SCK=clk/2; ~132 clk per word). Quad mode still open.
+2. [x] `mem_arbiter` (in qspi_ctrl.sv) — 2:1, data priority, grant held
+       until ack.
+3. [x] `src/rv32_core.sv` — ASIC build of cpu_pipe: fetch FSM over req/ack
+       (non-blocking: bubbles while in flight, fdrop on taken branch),
+       all non-MMIO data through the old SDRAM handshake, video/audio/pad
+       stripped, GPIO-in added at 0x10008.
+4. [~] cocotb tb with behavioral SPI flash+PSRAM models (test/test.py):
+       smoke test passes — XIP boot, PSRAM word/byte load/store, branch
+       loop, GPIO read, LED MMIO, ecall halt. ~120 clk/instr as expected.
+       Still open: full riscv-tests suite through the QSPI models.
 5. [ ] First hardening run -> read area/utilization from the GDS action.
        Decide tiles (expect 2x2..4x2) and whether the 32x32 flop register
        file fits; fallbacks: RV32E (16 regs) or the single-cycle core.
