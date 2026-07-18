@@ -74,9 +74,17 @@ UART) is portable SystemVerilog.
 7. [x] `docs/info.md` datasheet + `bringup/bringup.py` MicroPython script
        (flash program/verify via bit-banged SPI + run + UART listen;
        marked VERIFY-ON-HARDWARE for SDK pin names).
-8. [ ] Shrink experiments (in progress): can the design fit 3x2 (6 tiles)?
-       Levers: latch-based regfile, single-cycle core, iterative shifter.
-9. [ ] Submit on app.tinytapeout.com before ~2026-09-07.
+8. [x] Shrink experiment CLOSED — verdict: **stay at 4x2**. Branch
+       `shrink-3x2` measured the v2 core at 83,360 um^2 = 77% utilization
+       on 3x2; GPL refuses (GPL-0302), and ~77% is deep in the congestion
+       zone that killed the RV32I build anyway. Reaching a routable ~60%
+       would need ~18k um^2 of cuts (latch regfile ~-5k + iterative
+       shifter ~-6k still falls short) — multiple risky surgeries on a
+       verified design to save $100. Not worth it before this shuttle;
+       revisit for chip #3 if ever.
+9. [ ] Submit on app.tinytapeout.com before ~2026-09-07. Final config:
+       4x2 tiles @ 65% density, RV32E + burst-2 + quad-SPI v2 — hardened
+       green (run 29649905509), suite passing in both SPI modes.
 
 ## Performance expectation (honest)
 
