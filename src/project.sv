@@ -40,9 +40,9 @@ module tt_um_joonatanalanampa_rv32 (
   wire [31:0] d_wdata;
   wire [3:0]  d_be;
 
-  wire        m_req, m_we, m_ack;
+  wire        m_req, m_we, m_burst, m_ack;
   wire [22:0] m_addr;
-  wire [31:0] m_wdata, m_rdata;
+  wire [31:0] m_wdata, m_rdata, m_rdata2;
   wire [3:0]  m_be;
 
   wire sck, mosi, miso, cs_flash_n, cs_ram_n;
@@ -53,6 +53,7 @@ module tt_um_joonatanalanampa_rv32 (
       .clk(clk), .rst(rst),
       .halted(halted), .led(led), .uart_txd(uart_txd), .gpio_in(ui_in),
       .if_req(if_req), .if_addr(if_addr), .if_ack(if_ack), .if_rdata(m_rdata),
+      .if_rdata2(m_rdata2),
       .d_req(d_req), .d_we(d_we), .d_addr(d_addr), .d_wdata(d_wdata),
       .d_be(d_be), .d_ack(d_ack), .d_rdata(m_rdata)
   );
@@ -62,14 +63,15 @@ module tt_um_joonatanalanampa_rv32 (
       .f_req(if_req), .f_addr(if_addr), .f_ack(if_ack),
       .d_req(d_req), .d_we(d_we), .d_addr(d_addr), .d_wdata(d_wdata),
       .d_be(d_be), .d_ack(d_ack),
-      .m_req(m_req), .m_we(m_we), .m_addr(m_addr), .m_wdata(m_wdata),
-      .m_be(m_be), .m_ack(m_ack)
+      .m_req(m_req), .m_we(m_we), .m_burst(m_burst), .m_addr(m_addr),
+      .m_wdata(m_wdata), .m_be(m_be), .m_ack(m_ack)
   );
 
   qspi_ctrl qspi (
       .clk(clk), .rst(rst),
-      .req(m_req), .we(m_we), .addr(m_addr), .wdata(m_wdata), .be(m_be),
-      .ack(m_ack), .rdata(m_rdata),
+      .req(m_req), .we(m_we), .burst(m_burst), .addr(m_addr),
+      .wdata(m_wdata), .be(m_be),
+      .ack(m_ack), .rdata(m_rdata), .rdata2(m_rdata2),
       .sck(sck), .mosi(mosi), .miso(miso),
       .cs_flash_n(cs_flash_n), .cs_ram_n(cs_ram_n)
   );

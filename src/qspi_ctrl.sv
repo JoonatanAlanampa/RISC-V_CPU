@@ -21,11 +21,13 @@ module qspi_ctrl (
 
     input  logic        req,
     input  logic        we,
+    input  logic        burst,   // read 64 bits: rdata = word@addr, rdata2 = word@addr+1
     input  logic [22:0] addr,    // word address; bit 22: 0=flash, 1=PSRAM
     input  logic [31:0] wdata,   // bytes pre-shifted into lane position
     input  logic [3:0]  be,
     output logic        ack,
     output logic [31:0] rdata,
+    output logic [31:0] rdata2,
 
     output logic        sck,
     output logic        mosi,    // SD0
@@ -39,10 +41,11 @@ module qspi_ctrl (
 
   logic [2:0]  state;
   logic [31:0] osh;      // output shift register (cmd+addr, then write data)
-  logic [31:0] ish;      // input shift register
-  logic [5:0]  nbits;
+  logic [63:0] ish;      // input shift register (64 for burst reads)
+  logic [6:0]  nbits;
   logic [31:0] wsh_q;
-  logic [5:0]  wbits_q;
+  logic [6:0]  wbits_q;
+  logic        burst_q;
 
   wire dev_ram = addr[22];
   wire [1:0] first = be[0] ? 2'd0 : be[1] ? 2'd1 : be[2] ? 2'd2 : 2'd3;
@@ -50,16 +53,16 @@ module qspi_ctrl (
 
   // write bytes, packed first-sent at the top (memory order, MSB-first bits)
   logic [31:0] wpack;
-  logic [5:0]  wbits;
+  logic [6:0]  wbits;
   always_comb
     case (be)
-      4'b1111: begin wpack = {wdata[7:0], wdata[15:8], wdata[23:16], wdata[31:24]}; wbits = 6'd32; end
-      4'b0011: begin wpack = {wdata[7:0],  wdata[15:8],  16'h0}; wbits = 6'd16; end
-      4'b1100: begin wpack = {wdata[23:16], wdata[31:24], 16'h0}; wbits = 6'd16; end
-      4'b0001: begin wpack = {wdata[7:0],   24'h0}; wbits = 6'd8; end
-      4'b0010: begin wpack = {wdata[15:8],  24'h0}; wbits = 6'd8; end
-      4'b0100: begin wpack = {wdata[23:16], 24'h0}; wbits = 6'd8; end
-      default: begin wpack = {wdata[31:24], 24'h0}; wbits = 6'd8; end
+      4'b1111: begin wpack = {wdata[7:0], wdata[15:8], wdata[23:16], wdata[31:24]}; wbits = 7'd32; end
+      4'b0011: begin wpack = {wdata[7:0],  wdata[15:8],  16'h0}; wbits = 7'd16; end
+      4'b1100: begin wpack = {wdata[23:16], wdata[31:24], 16'h0}; wbits = 7'd16; end
+      4'b0001: begin wpack = {wdata[7:0],   24'h0}; wbits = 7'd8; end
+      4'b0010: begin wpack = {wdata[15:8],  24'h0}; wbits = 7'd8; end
+      4'b0100: begin wpack = {wdata[23:16], 24'h0}; wbits = 7'd8; end
+      default: begin wpack = {wdata[31:24], 24'h0}; wbits = 7'd8; end
     endcase
 
   always_ff @(posedge clk)
@@ -71,11 +74,13 @@ module qspi_ctrl (
       cs_ram_n   <= 1'b1;
       ack        <= 1'b0;
       rdata      <= 32'd0;
+      rdata2     <= 32'd0;
       osh        <= 32'd0;
-      ish        <= 32'd0;
-      nbits      <= 6'd0;
+      ish        <= 64'd0;
+      nbits      <= 7'd0;
       wsh_q      <= 32'd0;
-      wbits_q    <= 6'd0;
+      wbits_q    <= 7'd0;
+      burst_q    <= 1'b0;
     end else begin
       ack <= 1'b0;
 
@@ -86,9 +91,10 @@ module qspi_ctrl (
               ack <= 1'b1;                      // flash is read-only: no-op
             end else begin
               osh        <= {we ? 8'h02 : 8'h03, baddr};
-              nbits      <= 6'd32;
+              nbits      <= 7'd32;
               wsh_q      <= wpack;
               wbits_q    <= wbits;
+              burst_q    <= burst && !we;
               cs_flash_n <= dev_ram;
               cs_ram_n   <= ~dev_ram;
               sck        <= 1'b0;
@@ -103,15 +109,15 @@ module qspi_ctrl (
             sck   <= 1'b0;
             osh   <= {osh[30:0], 1'b0};
             mosi  <= osh[30];
-            nbits <= nbits - 6'd1;
-            if (nbits == 6'd1) begin
+            nbits <= nbits - 7'd1;
+            if (nbits == 7'd1) begin
               if (we) begin
                 osh   <= wsh_q;
                 mosi  <= wsh_q[31];
                 nbits <= wbits_q;
                 state <= S_WR;
               end else begin
-                nbits <= 6'd32;
+                nbits <= burst_q ? 7'd64 : 7'd32;
                 state <= S_RD;
               end
             end
@@ -123,16 +129,16 @@ module qspi_ctrl (
             sck   <= 1'b0;
             osh   <= {osh[30:0], 1'b0};
             mosi  <= osh[30];
-            nbits <= nbits - 6'd1;
-            if (nbits == 6'd1) state <= S_FIN;
+            nbits <= nbits - 7'd1;
+            if (nbits == 7'd1) state <= S_FIN;
           end
 
         S_RD:
           if (!sck) begin                       // rising edge: sample MISO
             sck   <= 1'b1;
-            ish   <= {ish[30:0], miso};
-            nbits <= nbits - 6'd1;
-            if (nbits == 6'd1) state <= S_FIN;
+            ish   <= {ish[62:0], miso};
+            nbits <= nbits - 7'd1;
+            if (nbits == 7'd1) state <= S_FIN;
           end else
             sck <= 1'b0;
 
@@ -140,8 +146,13 @@ module qspi_ctrl (
           sck        <= 1'b0;
           cs_flash_n <= 1'b1;
           cs_ram_n   <= 1'b1;
-          // first byte received is the lowest byte in memory (little-endian)
-          rdata      <= {ish[7:0], ish[15:8], ish[23:16], ish[31:24]};
+          // first byte received is the lowest byte in memory (little-endian);
+          // on a burst the first word streamed sits in ish[63:32]
+          if (burst_q) begin
+            rdata  <= {ish[39:32], ish[47:40], ish[55:48], ish[63:56]};
+            rdata2 <= {ish[7:0], ish[15:8], ish[23:16], ish[31:24]};
+          end else
+            rdata <= {ish[7:0], ish[15:8], ish[23:16], ish[31:24]};
           ack        <= 1'b1;
           state      <= S_IDLE;
         end
@@ -172,6 +183,7 @@ module mem_arbiter (
     // downstream (qspi_ctrl)
     output logic        m_req,
     output logic        m_we,
+    output logic        m_burst,
     output logic [22:0] m_addr,
     output logic [31:0] m_wdata,
     output logic [3:0]  m_be,
@@ -189,6 +201,7 @@ module mem_arbiter (
 
   assign m_req   = (grant == G_DATA) ? d_req : (grant == G_FETCH) ? f_req : 1'b0;
   assign m_we    = (grant == G_DATA) ? d_we : 1'b0;
+  assign m_burst = (grant == G_FETCH);          // fetches always read a pair
   assign m_addr  = (grant == G_DATA) ? d_addr : f_addr;
   assign m_wdata = d_wdata;
   assign m_be    = (grant == G_DATA) ? d_be : 4'b1111;

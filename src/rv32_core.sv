@@ -32,11 +32,13 @@ module rv32_core #(
     output logic        uart_txd,
     input  logic [7:0]  gpio_in,
 
-    // instruction fetch port (req held until 1-cycle ack)
+    // instruction fetch port (req held until 1-cycle ack); each fetch
+    // returns an instruction PAIR: if_rdata = @addr, if_rdata2 = @addr+4
     output logic        if_req,
     output logic [22:0] if_addr,
     input  logic        if_ack,
     input  logic [31:0] if_rdata,
+    input  logic [31:0] if_rdata2,
 
     // data port (same protocol)
     output logic        d_req,
@@ -58,6 +60,8 @@ module rv32_core #(
     logic        fbusy, fdrop;
     logic [31:0] fpc;                    // address of the in-flight fetch
     logic [31:0] npc;                    // next address to fetch
+    logic [31:0] fbuf;                   // skid: second word of the pair
+    logic        fbuf_v;
 
     assign if_req  = fbusy;
     assign if_addr = fpc[24:2];
@@ -69,32 +73,45 @@ module rv32_core #(
         if (rst) begin
             fbusy <= 1'b0; fdrop <= 1'b0;
             fpc   <= 32'd0; npc <= 32'd0;
+            fbuf  <= 32'd0; fbuf_v <= 1'b0;
             valid_d <= 1'b0; pc_d <= 32'd0; instr_d <= 32'd0;
         end else begin
-            if (consume) valid_d <= 1'b0;
+            if (consume) begin
+                if (fbuf_v) begin       // promote the pair's second word
+                    instr_d <= fbuf;
+                    pc_d    <= pc_d + 32'd4;
+                    fbuf_v  <= 1'b0;    // valid_d stays 1: no bubble
+                end else
+                    valid_d <= 1'b0;
+            end
 
             if (if_ack) begin
+                // a fetch is only in flight while head+skid are empty, so
+                // delivery never collides with consume/promote
                 fbusy <= 1'b0;
                 fdrop <= 1'b0;
                 if (!fdrop) begin
                     instr_d <= if_rdata;
                     pc_d    <= fpc;
                     valid_d <= 1'b1;
-                    npc     <= fpc + 32'd4;
+                    fbuf    <= if_rdata2;
+                    fbuf_v  <= 1'b1;
+                    npc     <= fpc + 32'd8;
                 end
-            end else if (!fbusy && !valid_d && !halted && !flush_ex) begin
+            end else if (!fbusy && !valid_d && !fbuf_v && !halted && !flush_ex) begin
                 // !flush_ex: a redirect lands this same edge and rewrites
                 // npc — starting now would fetch the stale wrong-path npc
                 // with no fdrop mark (redirect sees the stale fbusy=0), and
-                // its delivery would then clobber npc with wrong-path+4,
+                // its delivery would then clobber npc with wrong-path+8,
                 // losing the branch target entirely.
                 fbusy <= 1'b1;
                 fpc   <= npc;
             end
 
-            // redirect last: overrides a same-cycle delivery
+            // redirect last: overrides a same-cycle delivery/promotion
             if (advance && flush_ex) begin
                 valid_d <= 1'b0;
+                fbuf_v  <= 1'b0;
                 npc     <= target_ex;
                 if (fbusy && !if_ack) fdrop <= 1'b1;
             end
