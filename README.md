@@ -1,8 +1,16 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# TinyRV32 — a RISC-V CPU on a TinyTapeout Sky130 tile
 
-- [Read the documentation for project](docs/info.md)
+RV32E 5-stage pipelined RISC-V core executing in place from QSPI Pmod
+flash/PSRAM. Passes all 40 official rv32ui riscv-tests pin-level and runs
+GCC-compiled C ("Hello from my own CPU! fib(10)=55" over UART). Hardened
+clean at 4x2 tiles. ASIC port of the FPGA core from
+[JoonatanAlanampa/CPU](https://github.com/JoonatanAlanampa/CPU).
+
+- **[Interactive die viewer (2D/3D)](https://joonatanalanampa.github.io/RISC-V_CPU/)** — pan around the actual GDS layout
+- [Datasheet](docs/info.md) — architecture, memory map, bring-up
+- [PLAN.md](PLAN.md) — the port's design decisions and hardening history
 
 ## What is Tiny Tapeout?
 
