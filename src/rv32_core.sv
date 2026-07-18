@@ -22,7 +22,8 @@
 `default_nettype none
 
 module rv32_core #(
-    parameter UART_DIV = 217
+    parameter UART_DIV = 217,
+    parameter NREGS    = 32     // 16 = RV32E-style: halves the regfile
 ) (
     input  logic        clk,
     input  logic        rst,
@@ -122,7 +123,7 @@ module rv32_core #(
     logic        reg_write_w, valid_w;
     logic [4:0]  rd_w;
     logic [31:0] wb_w, rf_r1, rf_r2;
-    regfile rf (.clk(clk), .we(reg_write_w && valid_w && !halted),
+    regfile #(.NREGS(NREGS)) rf (.clk(clk), .we(reg_write_w && valid_w && !halted),
                 .waddr(rd_w), .wdata(wb_w),
                 .raddr1(rs1_d), .raddr2(rs2_d), .rdata1(rf_r1), .rdata2(rf_r2));
 

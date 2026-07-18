@@ -47,7 +47,9 @@ module tt_um_joonatanalanampa_rv32 (
 
   wire sck, mosi, miso, cs_flash_n, cs_ram_n;
 
-  rv32_core #(.UART_DIV(217)) core (
+  // NREGS=16 (RV32E register set): the 32-entry regfile was the routing
+  // killer — see PLAN.md hardening history. rv32ui suite verified clean.
+  rv32_core #(.UART_DIV(217), .NREGS(16)) core (
       .clk(clk), .rst(rst),
       .halted(halted), .led(led), .uart_txd(uart_txd), .gpio_in(ui_in),
       .if_req(if_req), .if_addr(if_addr), .if_ack(if_ack), .if_rdata(m_rdata),
