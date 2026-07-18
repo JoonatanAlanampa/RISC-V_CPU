@@ -81,7 +81,12 @@ module rv32_core #(
                     valid_d <= 1'b1;
                     npc     <= fpc + 32'd4;
                 end
-            end else if (!fbusy && !valid_d && !halted) begin
+            end else if (!fbusy && !valid_d && !halted && !flush_ex) begin
+                // !flush_ex: a redirect lands this same edge and rewrites
+                // npc — starting now would fetch the stale wrong-path npc
+                // with no fdrop mark (redirect sees the stale fbusy=0), and
+                // its delivery would then clobber npc with wrong-path+4,
+                // losing the branch target entirely.
                 fbusy <= 1'b1;
                 fpc   <= npc;
             end

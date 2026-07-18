@@ -50,13 +50,14 @@ UART) is portable SystemVerilog.
        (non-blocking: bubbles while in flight, fdrop on taken branch),
        all non-MMIO data through the old SDRAM handshake, video/audio/pad
        stripped, GPIO-in added at 0x10008.
-4. [~] cocotb tb with behavioral SPI flash+PSRAM models (test/test.py):
-       smoke test passes — XIP boot, PSRAM word/byte load/store, branch
-       loop, GPIO read, LED MMIO, ecall halt. ~120 clk/instr as expected.
-       Still open: full riscv-tests suite through the QSPI models.
-5. [ ] First hardening run -> read area/utilization from the GDS action.
-       Decide tiles (expect 2x2..4x2) and whether the 32x32 flop register
-       file fits; fallbacks: RV32E (16 regs) or the single-cycle core.
+4. [x] cocotb tb with behavioral SPI flash+PSRAM models: smoke test plus
+       **ALL 40 official rv32ui riscv-tests PASS through the QSPI XIP path**
+       (test/riscv_suite.py; build_riscv_tests.py relinks .data to PSRAM).
+       Found+fixed a real pipeline bug the FPGA build couldn't hit: a
+       redirect landing on the same edge a fetch starts must suppress the
+       fetch, or taken branches lose their target (rv32_core.sv fetch FSM).
+5. [~] Hardening: 2x2 = 145% utilization (8k cells, 103k um2) -> bumped to
+       4x2 tiles at 75% target density; awaiting the GDS action verdict.
 6. [ ] Optional once working: shrink `cache.sv` to a flop-based line buffer
        (e.g. 2x16B) to hide QSPI latency; measure CPI in sim first.
 7. [ ] `docs/info.md` datasheet + MicroPython bring-up script.

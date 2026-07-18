@@ -146,6 +146,7 @@ def smoke_program():
         addi(x13, x0, 3),         # countdown loop: 3 iterations
         addi(x13, x13, -1),       # <- loop target (pc = 0x38)
         bne(x13, x0, -4),         # taken twice, then falls through
+        sw(x13, 0, x5),           # LED <= 0: proves the loop actually ran
         lw(x14, 8, x5),           # x14 = GPIO in
         sw(x14, 0, x5),           # LED <= GPIO
         ECALL,                    # halt
@@ -187,8 +188,9 @@ async def test_smoke(dut):
 
     assert halted, f"CPU never halted; LED history: {[hex(v) for v in led_seq]}"
 
-    # LED starts at 0, then the program's writes (6-bit visible slice)
-    expected = [0x00, 0x2A, 0xFD & 0x3F, 0x2A, gpio_val & 0x3F]
+    # LED starts at 0, then the program's writes (6-bit visible slice);
+    # the 0x00 after 0x2A is the loop counter — catches broken taken-branches
+    expected = [0x00, 0x2A, 0xFD & 0x3F, 0x2A, 0x00, gpio_val & 0x3F]
     assert led_seq == expected, \
         f"LED sequence {[hex(v) for v in led_seq]} != {[hex(v) for v in expected]}"
 
