@@ -56,8 +56,12 @@ UART) is portable SystemVerilog.
        Found+fixed a real pipeline bug the FPGA build couldn't hit: a
        redirect landing on the same edge a fetch starts must suppress the
        fetch, or taken branches lose their target (rv32_core.sv fetch FSM).
-5. [~] Hardening: 2x2 = 145% utilization (8k cells, 103k um2) -> bumped to
-       4x2 tiles at 75% target density; awaiting the GDS action verdict.
+5. [x] Hardening GREEN at **6x2 tiles, 55% density** (2026-07-18): routing
+       converged to 0 violations, signoff clean, gate-level smoke test
+       passed, TT precheck passed. History: 2x2 = 145% util; 4x2 @ 75% =
+       390k+ routing violations (regfile muxing saturates lower metals).
+       Area-shrink options if 12 tiles is too expensive: RV32E, latch
+       regfile, or the single-cycle core.
 6. [ ] Optional once working: shrink `cache.sv` to a flop-based line buffer
        (e.g. 2x16B) to hide QSPI latency; measure CPI in sim first.
 7. [ ] `docs/info.md` datasheet + MicroPython bring-up script.
