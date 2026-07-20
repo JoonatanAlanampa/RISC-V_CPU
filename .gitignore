@@ -13,3 +13,6 @@ test/results.xml
 test/gate_level_netlist.v
 
 sw/*.elf
+fpga/build/
+fpga/test/sim_build/
+fpga/test/results*.xml

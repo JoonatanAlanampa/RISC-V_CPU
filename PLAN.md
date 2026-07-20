@@ -30,7 +30,9 @@ UART) is portable SystemVerilog.
 
 - **Memory**: TinyTapeout **QSPI Pmod** (standard pinout: CS0=uio[0],
   SD0..SD3=uio[1,2,4,5], SCK=uio[3], CS1=uio[6], CS2=uio[7]) — W25Q128
-  flash for code (XIP) + 2x 8 MB PSRAM for data/stack.
+  flash for code (XIP) + 8 MB PSRAM for data/stack. (Early drafts said
+  "2x PSRAM"; the implementation uses ONE — CS2 held high — which makes the
+  design Cartridge-Pmod-compatible as-is. See fpga/README.md.)
 - **Memory map**: flash at 0x0000_0000 (code), PSRAM at 0x0100_0000
   (data/stack), MMIO unchanged from FPGA build (0x10000 LED, 0x10004 UART,
   0x10008 GPIO in).
