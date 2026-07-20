@@ -38,11 +38,28 @@ openFPGALoader -b ulx3s fpga\build\rv32_cartridge.bit
    (115200), LED7 = halted, LED5:0 = the program's LED MMIO writes,
    buttons/switches feed GPIO-in MMIO (`ui = {sw[3:2], 2'b00, btn[4:1]}`).
 
+## Full-stack rehearsal (`test/run_hello.py`)
+
+The strongest pre-hardware proof: the **real `sw/hello.bin`** (the exact
+bytes `flash_cartridge.py` writes) XIP-boots through the cartridge pin
+permutation, switches to QUAD mid-program (`QSPI_CFG = 3`), recurses
+fib(10) with its stack in the PSRAM model, and prints
+`Hello from my own CPU!` / `fib(10)=55` on the UART — verified in both
+plug orientations against the proven serial+quad `SpiMem` models wired at
+the header-net level.
+
+Sim lesson worth keeping: wire-level glue must be **X-tolerant per
+signal**, never skip-on-X. `main()`'s prologue pushes a never-written
+callee-saved register — real silicon stores junk harmlessly, but in sim
+the X reaches MOSI; dropping those edges loses SCK/CS events and desyncs
+the models forever. CS resolves toward deselected (cartridge pull-ups),
+SCK holds, X data bits become defined garbage.
+
 ## Files
 
 - `ulx3s_top.sv` — pin permutation + orientation mux around the tt_um core
   (mapping A: `gp[n] = uio[3-n]`, `gn[n] = uio[7-n]`; B swaps rows)
 - `ulx3s.lpf` — same J1/LED/UART sites as the cartridge bring-up harness
-- `test/` — cocotb: behavioral flash (preloaded with an 8-instruction RV32E
-  program) + PSRAM models; asserts LED=42 after a PSRAM round-trip + halt,
-  in both plug orientations
+- `test/` — cocotb: `run.py` = smoke (SV serial models, LED=42 round-trip);
+  `run_hello.py` = the full-stack hello.bin rehearsal (python quad models
+  on the header nets, `tb_hello.sv`)

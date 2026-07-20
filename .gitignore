@@ -16,3 +16,4 @@ sw/*.elf
 fpga/build/
 fpga/test/sim_build/
 fpga/test/results*.xml
+fpga/test/sim_build_hello/
