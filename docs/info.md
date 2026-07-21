@@ -51,6 +51,13 @@ The LEDs (uo[7:2]) end at 0b110111 (55) and HALTED (uo[1]) goes high.
 Any RV32E program under 64 KB of code works the same way: build with
 `sw/build.py`, flash, reset.
 
+`bringup/bringup.py` does all of that from the demo board's RP2040 —
+it programs the flash over bit-banged SPI, boots the chip and checks the
+UART, LEDs and HALTED pin, printing a PASS/FAIL table. It also verifies
+the flash **QE bit** before booting: `sw/hello.c` switches to quad on its
+first instruction, so a clear QE bit would hang the CPU with nothing to
+see. See `bringup/README.md`.
+
 ## External hardware
 
 - **TinyTapeout QSPI Pmod** (W25Q128 flash + 2x APS6404 PSRAM) on the

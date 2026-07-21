@@ -23,6 +23,23 @@ jobs:
         shell: bash
         run: pip install -r test/requirements.txt
 
+      # Pinned so the bring-up script's board idioms are checked against real
+      # shipping firmware code, not against a hand-written idea of it. Bump the
+      # ref deliberately; a diff here is exactly the API drift we want to see.
+      - name: Checkout tt-micropython-firmware (pinned)
+        uses: actions/checkout@v6
+        with:
+          repository: TinyTapeout/tt-micropython-firmware
+          # full SHA required: actions/checkout cannot fetch an abbreviated one
+          ref: f34d9f0da5b0245de8bbd78e1cd3b3c4170408b9
+          path: ttfw
+          submodules: recursive
+
+      - name: Bring-up script self-test (virtual demo board)
+        env:
+          TT_FIRMWARE_SRC: ttfw/microcotb/src
+        run: python bringup/test_bringup_host.py
+
       - name: Run tests
         run: |
           cd test
