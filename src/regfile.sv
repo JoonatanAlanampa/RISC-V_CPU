@@ -57,7 +57,10 @@ module regfile #(
     genvar i;
     generate
         for (i = 0; i < NREGS; i = i + 1) begin : rf
-            always @* if (wsel[i]) regs[i] = wdata;
+            // always_latch (not always @*) so the linter reads this as an
+            // INTENTIONAL latch — Verilator/LibreLane RUN_LINTER treats an
+            // inferred latch from a combinational block as a fatal %Error.
+            always_latch if (wsel[i]) regs[i] = wdata;
         end
     endgenerate
 
