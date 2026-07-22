@@ -22,10 +22,11 @@
 // purely data-gated latch would not). Any in-cycle read of the register being
 // written is overridden by the core's bypass, so early transparency is benign.
 //
-// HARDEN-BRANCH ENABLE: the `shrink-latch-rf` branch hardens the LATCH variant,
-// so LATCH_RF is forced on here. The ifdef is local to this file; on other
-// branches the variant is selected by the build's -DLATCH_RF instead.
-`define LATCH_RF
+// VERDICT (2026-07-22): the latch RF is a real, verified area win (-10k um2,
+// -16% of the chip; 40/40 rv32ui) but it is P&R-HOSTILE in the OpenLane/TT
+// flow — two 3x2 hardens (density 65 and 75) both thrashed >70 min in Build
+// GDS without converging (512 gated latches stress CTS/routing). So it is kept
+// as an opt-in variant (-DLATCH_RF), NOT enabled by default. See PLAN.md #8.
 `ifdef LATCH_RF
 module regfile #(
     parameter NREGS = 32

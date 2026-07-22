@@ -96,9 +96,21 @@ UART) is portable SystemVerilog.
          The shared shifter is weak (ABC already shared the 3 barrels); the
          big untried lever is de-pipelining (pipe buys ~nothing on memory-bound
          XIP). x1.34 synth->placed => ~65% util on 3x2 = plausibly routable.
-       - IN FLIGHT: this branch forces LATCH_RF (regfile.sv `define) and sets
-         tiles=3x2 to HARDEN the definitive test — does ~65% actually route and
-         does CTS/STA tolerate 512 gated latches? Result pending CI.
+       - HARDEN VERDICT (2026-07-22): the latch RF is P&R-HOSTILE in this flow.
+         Two 3x2 hardens (PL_TARGET_DENSITY_PCT 65 then 75, latch forced) BOTH
+         thrashed >70 min in "Build GDS" without converging — the 512 gated
+         latches (we & ~clk & decode) stress CTS/detailed routing; density is
+         not the lever. (First attempt also taught: LibreLane RUN_LINTER rejects
+         an inferred latch from `always @*` as a fatal %Error — use always_latch.)
+       - OUTCOME: kept as an OPT-IN variant (-DLATCH_RF / -DSHARED_SHIFT), NOT
+         default; branch `shrink-latch-rf` left with tiles=4x2 + density 65 so
+         its default (flop) build stays green. The measured area win stands
+         (-16%, 40/40 rv32ui) even though this flow won't route it at 3x2.
+       - THE PATH TO 3x2 (if ever pursued) = DE-PIPELINE to a multi-cycle core:
+         removes flops-as-flops (no latch/CTS pathology) and cuts the ~34%
+         pipeline-glue block (454 flops + forwarding + hazards), which buys
+         ~nothing on this memory-bound XIP design anyway. Bigger rewrite of a
+         verified core; deferred. Staying at 4x2 for now.
 9. [ ] Submit on app.tinytapeout.com before ~2026-09-07. Final config:
        4x2 tiles @ 65% density, RV32E + burst-2 + quad-SPI v2 — hardened
        green (run 29649905509), suite passing in both SPI modes.
