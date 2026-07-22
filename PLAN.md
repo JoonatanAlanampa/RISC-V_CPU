@@ -76,14 +76,29 @@ UART) is portable SystemVerilog.
 7. [x] `docs/info.md` datasheet + `bringup/bringup.py` MicroPython script
        (flash program/verify via bit-banged SPI + run + UART listen;
        marked VERIFY-ON-HARDWARE for SDK pin names).
-8. [x] Shrink experiment CLOSED — verdict: **stay at 4x2**. Branch
-       `shrink-3x2` measured the v2 core at 83,360 um^2 = 77% utilization
-       on 3x2; GPL refuses (GPL-0302), and ~77% is deep in the congestion
-       zone that killed the RV32I build anyway. Reaching a routable ~60%
-       would need ~18k um^2 of cuts (latch regfile ~-5k + iterative
-       shifter ~-6k still falls short) — multiple risky surgeries on a
-       verified design to save $100. Not worth it before this shuttle;
-       revisit for chip #3 if ever.
+8. [~] Shrink experiment — first CLOSED, now **REOPENED** with real data.
+       - v1 (2026-07-18, branch `shrink-3x2`, since deleted): measured the
+         UNSHRUNK v2 core at 83,360 um^2 = 77% util on 3x2; GPL refused
+         (GPL-0302). Concluded latch RF ~-5k + iterative shifter ~-6k would
+         still fall short, and it wasn't worth risky surgery "to save $100".
+       - REOPEN rationale (2026-07-22): tt-riscv is NOT being submitted
+         (CORDIC-1 was), so this is a portfolio/engineering experiment — the
+         "$100" cost/benefit no longer gates it. And the v1 cuts were only
+         ESTIMATED, never built.
+       - v2 (2026-07-22, branch `shrink-latch-rf`): actually IMPLEMENTED the
+         latch regfile + a shared ALU shifter, both behind -DLATCH_RF /
+         -DSHARED_SHIFT (default build unchanged). All 4 configs pass 40/40
+         rv32ui locally, cycle-identical. yosys area (sky130 hd):
+           baseline 62472 | LATCH_RF 52443 (-16.1%) |
+           SHARED_SHIFT 61729 (-1.2%) | combo 51804 (-17.1%) um2.
+         KEY: dlxtp_1 (15.014) = exactly HALF edfxtp_1 (30.029), so the latch
+         RF saves ~10k um2 — DOUBLE the v1 -5k estimate. That was v1's error.
+         The shared shifter is weak (ABC already shared the 3 barrels); the
+         big untried lever is de-pipelining (pipe buys ~nothing on memory-bound
+         XIP). x1.34 synth->placed => ~65% util on 3x2 = plausibly routable.
+       - IN FLIGHT: this branch forces LATCH_RF (regfile.sv `define) and sets
+         tiles=3x2 to HARDEN the definitive test — does ~65% actually route and
+         does CTS/STA tolerate 512 gated latches? Result pending CI.
 9. [ ] Submit on app.tinytapeout.com before ~2026-09-07. Final config:
        4x2 tiles @ 65% density, RV32E + burst-2 + quad-SPI v2 — hardened
        green (run 29649905509), suite passing in both SPI modes.

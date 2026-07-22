@@ -21,6 +21,11 @@
 // real clock gates every latch, STA/CTS still see a clock relationship (a
 // purely data-gated latch would not). Any in-cycle read of the register being
 // written is overridden by the core's bypass, so early transparency is benign.
+//
+// HARDEN-BRANCH ENABLE: the `shrink-latch-rf` branch hardens the LATCH variant,
+// so LATCH_RF is forced on here. The ifdef is local to this file; on other
+// branches the variant is selected by the build's -DLATCH_RF instead.
+`define LATCH_RF
 `ifdef LATCH_RF
 module regfile #(
     parameter NREGS = 32
